@@ -1,0 +1,40 @@
+```{r}
+library(leaps)
+library(glmnet)
+
+Central2024P <- read.csv("Central2024P.csv", stringsAsFactors = TRUE)
+summary(Central2024P)
+attach(Central2024P)
+
+dim(Central2024P)
+
+train <- sample(1:nrow(Central2024P), 0.7*nrow(Central2024P)) # 70-30 split of train & test dataset respectively
+
+Central2024P.train <- Central2024P[train,] # 70% train dataset
+Central2024P.test <- Central2024P[-train,] # 30% test dataset
+
+dim(Central2024P.train)
+dim(Central2024P.test)
+
+train.x <- model.matrix(Price~., data=Central2024P.train)[,-1]
+train.y <-Central2024P.train$Price
+test.x <- model.matrix(Price~., data=Central2024P.test)[,-1]
+test.y <- Central2024P.test$Price
+
+x <- model.matrix(Price~., data=Central2024P)[,-1]
+y <- Central2024P$Price
+
+lasso.mod <- glmnet(train.x, train.y, alpha=1)
+plot(lasso.mod)
+set.seed(9876)
+lasso.cv.out <- cv.glmnet(train.x, train.y, alpha=1, K = 10)
+plot(lasso.cv.out)
+lasso.bestlam <- lasso.cv.out$lambda.min
+lasso.pred <- predict(lasso.mod, s = lasso.bestlam, newx = test.x)
+mean((lasso.pred-test.y)^2) #MSE
+
+out.lasso <- glmnet(x, y, alpha = 1, lambda = lasso.bestlam)
+lasso.coef <- predict(out.lasso, type = "coefficients", s = lasso.bestlam)[1:19, ]
+lasso.coef
+```
+
